@@ -1,5 +1,4 @@
-ARG ROS_DISTRO
-FROM ros:${ROS_DISTRO}-ros-core-jammy
+FROM osrf/ros:humble-desktop
 
 RUN apt-get update \
     && apt-get install -y \
@@ -18,7 +17,7 @@ RUN echo "deb http://packages.osrfoundation.org/gazebo/ubuntu `lsb_release -cs` 
     ros-${ROS_DISTRO}-gazebo-ros-pkgs \
     python3-colcon-common-extensions python3-rosdep --no-install-recommends \
     && apt-get clean
-RUN rosdep init && rosdep update
+#RUN rosdep init && rosdep update
 
 RUN mkdir -p /ros2_ws/src
 COPY ./sjtu_drone_description /ros2_ws/src/sjtu_drone_description

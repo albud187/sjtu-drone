@@ -34,4 +34,4 @@ RUN /bin/bash -c 'cd /ros2_ws/ \
     && rosdep install --from-paths src --ignore-src -r -y \
     && colcon build'
 
-CMD ["/bin/bash", "-c", "source /opt/ros/${ROS_DISTRO}/setup.bash && source /ros2_ws/install/setup.bash && ros2 launch sjtu_drone_bringup sjtu_drone_bringup.launch.py"]
+CMD ["/bin/bash", "-c", "source /opt/ros/${ROS_DISTRO}/setup.bash && source /ros2_ws/install/setup.bash && ros2 launch sjtu_drone_bringup sjtu_drone_bringup_empty_world.launch.py"]

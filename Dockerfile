@@ -28,6 +28,8 @@ RUN curl -L https://github.com/osrf/gazebo_models/archive/refs/heads/master.zip 
     && unzip /tmp/gazebo_models.zip -d /tmp && mkdir -p ~/.gazebo/models/ && mv /tmp/gazebo_models-master/* ~/.gazebo/models/ \
     && rm -r /tmp/gazebo_models.zip
 
+#RUN apt-get install ros-humble-tf-transformations
+
 WORKDIR /ros2_ws
 RUN /bin/bash -c 'cd /ros2_ws/ \
     && source /opt/ros/${ROS_DISTRO}/setup.bash \

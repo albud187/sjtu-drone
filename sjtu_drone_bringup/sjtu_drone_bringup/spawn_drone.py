@@ -17,6 +17,9 @@
 import sys
 import rclpy
 from gazebo_msgs.srv import SpawnEntity
+from geometry_msgs.msg import Pose
+#from tf_transformations import quaternion_from_euler
+
 
 def main(args=None):
     rclpy.init(args=args)
@@ -26,11 +29,31 @@ def main(args=None):
     content = sys.argv[1]
     namespace = sys.argv[2]
 
+    x = 1.0
+    y = 1.0
+    z = 0.0
+    roll = 0.0
+    pitch = 0.0
+    yaw = 0.0
+
+    # Create a Pose object with the specified position and orientation
+    pose = Pose()
+    pose.position.x = float(x)
+    pose.position.y = float(y)
+    pose.position.z = float(z)
+    #q = quaternion_from_euler(roll, pitch, yaw)
+    pose.orientation.x = float(0.0)
+    pose.orientation.y = float(0.0)
+    pose.orientation.z = float(0.0)
+    pose.orientation.w = float(1.0)
+
+
     req = SpawnEntity.Request()
     req.name = namespace
     req.xml = content
     req.robot_namespace = namespace
     req.reference_frame = "world"
+    req.initial_pose = pose
 
     while not cli.wait_for_service(timeout_sec=1.0):
         node.get_logger().info('service not available, waiting again...')

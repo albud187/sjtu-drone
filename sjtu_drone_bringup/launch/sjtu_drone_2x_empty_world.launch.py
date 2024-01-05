@@ -21,25 +21,22 @@ from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, Opaq
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-
+from launch.substitutions import Command
 import xacro
 
+XACRO_FILE_NAME = "sjtu_drone_multi.urdf.xacro"
+XACRO_FILE_PATH = os.path.join(get_package_share_directory("sjtu_drone_description"),"urdf", XACRO_FILE_NAME)
+R_NS = ["drone0","drone1", "drone2"]
+init_poses = {R_NS[1]:"1.0 1.0 0.0", R_NS[2]: "0.0 5.0 0.0"}
 
 def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time", default="true")
     use_gui = DeclareLaunchArgument("use_gui", default_value="true", choices=["true", "false"], description="Whether to execute gzclient")
-    xacro_file_name = "sjtu_drone.urdf.xacro"
     pkg_gazebo_ros = get_package_share_directory('gazebo_ros')
-    xacro_file = os.path.join(
-        get_package_share_directory("sjtu_drone_description"),
-        "urdf", xacro_file_name
-    )
-    robot_description_config = xacro.process_file(xacro_file)
-    robot_desc = robot_description_config.toxml()
-    model_ns1 = "drone1"
-    model_ns2 = "drone2"
-    init_pose1 = "1.0 1.0 0.0"
-    init_pose2 = "0.0 5.0 0.0"
+    
+    r_1_doc = xacro.process_file(XACRO_FILE_PATH, mappings = {"drone_id":R_NS[1]})
+    r_1_desc = r_1_doc.toprettyxml(indent='  ')
+
     world_file = os.path.join(
         get_package_share_directory("sjtu_drone_description"),
         "worlds", "empty_world.world"
@@ -55,43 +52,39 @@ def generate_launch_description():
             )]
         return []
 
+
     return LaunchDescription([
         use_gui,
+
         Node(
-            package="robot_state_publisher",
-            executable="robot_state_publisher",
-            name="robot_state_publisher",
-            namespace=model_ns1,
-            output="screen",
-            parameters=[{"use_sim_time": use_sim_time, "robot_description": robot_desc}],
-            arguments=[robot_desc]
+            package='robot_state_publisher',
+            executable='robot_state_publisher',
+            namespace=R_NS[1],
+            parameters=[{'frame_prefix': R_NS[1]+'/','use_sim_time': use_sim_time, 'robot_description': r_1_desc}]
         ),
 
         Node(
             package='joint_state_publisher',
             executable='joint_state_publisher',
-            name='joint_state_publisher',
-            namespace=model_ns1,
+            name=R_NS[1]+"_" +'joint_state_publisher',
+            namespace=R_NS[1],
             output='screen',
         ),
 
-        Node(
-            package="robot_state_publisher",
-            executable="robot_state_publisher",
-            name="robot_state_publisher",
-            namespace=model_ns2,
-            output="screen",
-            parameters=[{"use_sim_time": use_sim_time, "robot_description": robot_desc}],
-            arguments=[robot_desc]
-        ),
+        # Node(
+        #     package='robot_state_publisher',
+        #     executable='robot_state_publisher',
+        #     namespace='drone2',
+        #     parameters=[{'frame_prefix': "drone2"+'/','use_sim_time': use_sim_time, 'robot_description': robot_desc_drone2}]
+        # ),
 
-        Node(
-            package='joint_state_publisher',
-            executable='joint_state_publisher',
-            name='joint_state_publisher',
-            namespace=model_ns2,
-            output='screen',
-        ),
+        # Node(
+        #     package='joint_state_publisher',
+        #     executable='joint_state_publisher',
+        #     name=model_ns2+"_"+'joint_state_publisher',
+        #     namespace=model_ns2,
+        #     output='screen',
+        # ),
 
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
@@ -104,18 +97,17 @@ def generate_launch_description():
 
         OpaqueFunction(function=launch_gzclient),
 
-        
         Node(
             package="sjtu_drone_bringup",
             executable="spawn_drone",
-            arguments=[robot_desc, model_ns1, init_pose1],
+            arguments=[r_1_desc, R_NS[1], init_poses[R_NS[1]]],
             output="screen"
         ),
 
-        Node(
-            package="sjtu_drone_bringup",
-            executable="spawn_drone",
-            arguments=[robot_desc, model_ns2, init_pose2],
-            output="screen"
-        )
+        # Node(
+        #     package="sjtu_drone_bringup",
+        #     executable="spawn_drone",
+        #     arguments=[robot_desc, R_NS[2], init_poses[R_NS[2]]],
+        #     output="screen"
+        # )
     ])

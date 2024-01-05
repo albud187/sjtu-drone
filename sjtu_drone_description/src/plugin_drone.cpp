@@ -40,17 +40,17 @@ DroneSimpleController::~DroneSimpleController()
 // Load the controller
 void DroneSimpleController::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
 {
+  model_name_ = _model->GetName().substr(0, _model->GetName().find("::"));
 
   if(!rclcpp::ok()){
-    RCLCPP_FATAL(rclcpp::get_logger("DroneSimpleController"), "A ROS node for Gazebo has not been initialized, unable to load plugin. Load the Gazebo system plugin 'libgazebo_ros_init.so' in the gazebo_ros package");
+    RCLCPP_FATAL(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "A ROS node for Gazebo has not been initialized, unable to load plugin. Load the Gazebo system plugin 'libgazebo_ros_init.so' in the gazebo_ros package");
   }
 
   
   world = _model->GetWorld();
-  RCLCPP_INFO(rclcpp::get_logger("DroneSimpleController"), "The drone plugin is loading!");
+  RCLCPP_INFO(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "The drone plugin is loading!");
   
   //default parameters
-  model_name_ = _model->GetName().substr(0, _model->GetName().find("::"));
   cmd_normal_topic_ = "cmd_vel";
   imu_topic_ = "imu";
   takeoff_topic_ = "takeoff";
@@ -67,15 +67,21 @@ void DroneSimpleController::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
   {
     link = _model->GetLink();
     link_name_ = link->GetName();
+    RCLCPP_INFO(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "bodyName found: ");
+
   }
   else {
-    link_name_ = _sdf->GetElement("bodyName")->Get<std::string>();
+    link_name_ = model_name_+"/"+_sdf->GetElement("bodyName")->Get<std::string>();
+    //link_name_ = _sdf->GetElement("bodyName")->Get<std::string>();
+
     link = boost::dynamic_pointer_cast<physics::Link>(world->EntityByName(link_name_));
+    RCLCPP_INFO(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "bodyName NOT found: ");
+
   }
 
   if (!link)
   {
-    RCLCPP_FATAL(rclcpp::get_logger("DroneSimpleController"), "gazebo_ros_baro plugin error: bodyName: %s does not exist\n", link_name_.c_str());
+    RCLCPP_FATAL(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "gazebo_ros_baro plugin error: bodyName: %s does not exist\n", link_name_.c_str());
     return;
   }
 
@@ -100,9 +106,10 @@ void DroneSimpleController::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
   else
     motion_drift_noise_time_ = _sdf->GetElement("motionDriftNoiseTime")->Get<double>();
 
-  RCLCPP_INFO_STREAM(rclcpp::get_logger("DroneSimpleController"), "Using following parameters: \n" <<
+  RCLCPP_INFO_STREAM(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Using following parameters: \n" <<
                       "\t\tlink_name: "<<  link_name_.c_str() << ",\n" <<
                       "\t\tmax_force: "<<  max_force_ << ",\n" <<
+                      "\t\tMODEL_NAME: "<<  model_name_  << ",\n" <<
                       "\t\tmotion_small_noise: "<<  motion_small_noise_ << ",\n" <<
                       "\t\tmotion_drift_noise: "<<  motion_drift_noise_ << ",\n" <<
                       "\t\tmotion_drift_noise_time: "<<  motion_drift_noise_time_
@@ -128,11 +135,11 @@ void DroneSimpleController::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
 
     cmd_subscriber_ = node_handle_->create_subscription<geometry_msgs::msg::Twist>(cmd_normal_topic_, rclcpp::QoS(rclcpp::KeepLast(1)), std::bind(&DroneSimpleController::CmdCallback, this, std::placeholders::_1),sub_opt);
     if (cmd_subscriber_->get_topic_name()[0] != '\0') 
-      RCLCPP_INFO(rclcpp::get_logger("DroneSimpleController"), "Using cmd_topic %s", cmd_normal_topic_.c_str());
+      RCLCPP_INFO(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Using cmd_topic %s", cmd_subscriber_->get_topic_name());
     else 
-      RCLCPP_WARN(rclcpp::get_logger("DroneSimpleController"), "Cannot resolve the cmd_topic: %s !", cmd_normal_topic_.c_str());
+      RCLCPP_WARN(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Cannot resolve the cmd_topic: %s !", cmd_normal_topic_.c_str());
   } else
-    RCLCPP_ERROR(rclcpp::get_logger("DroneSimpleController"), "No cmd_topic defined!");
+    RCLCPP_ERROR(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "No cmd_topic defined!");
   
   if (!posctrl_topic_.empty()) {
     auto sub_opt = rclcpp::SubscriptionOptions();
@@ -148,11 +155,11 @@ void DroneSimpleController::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
         sub_opt);
 
     if (posctrl_subscriber_->get_topic_name()[0] != '\0')
-      RCLCPP_INFO(rclcpp::get_logger("DroneSimpleController"), "Using position control topic: %s!", posctrl_subscriber_->get_topic_name());
+      RCLCPP_INFO(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Using position control topic: %s!", posctrl_subscriber_->get_topic_name());
     else
-      RCLCPP_INFO(rclcpp::get_logger("DroneSimpleController"), "Cannot resolve the position control topic: %s !", posctrl_topic_.c_str());
+      RCLCPP_INFO(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Cannot resolve the position control topic: %s !", posctrl_topic_.c_str());
   } else
-      RCLCPP_ERROR(rclcpp::get_logger("DroneSimpleController"), "No position control defined!");
+      RCLCPP_ERROR(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "No position control defined!");
 
   // subscribe imu
   if (!imu_topic_.empty()) {
@@ -167,11 +174,11 @@ void DroneSimpleController::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
       sub_opt);
 
     if (imu_subscriber_->get_topic_name()[0] != '\0')
-      RCLCPP_INFO(rclcpp::get_logger("DroneSimpleController"), "Using imu on topic %s as source of orientation and angular velocity.", imu_topic_.c_str());
+      RCLCPP_INFO(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Using imu on topic %s as source of orientation and angular velocity.", imu_topic_.c_str());
     else
-      RCLCPP_WARN(rclcpp::get_logger("DroneSimpleController"), "Cannot resolve the IMU topic: %s !", imu_topic_.c_str());
+      RCLCPP_WARN(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Cannot resolve the IMU topic: %s !", imu_topic_.c_str());
   } else
-      RCLCPP_ERROR(rclcpp::get_logger("DroneSimpleController"), "No imu topic defined!");
+      RCLCPP_ERROR(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "No imu topic defined!");
 
 
   // subscribe command: take off command
@@ -190,11 +197,11 @@ void DroneSimpleController::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
     );
 
     if (takeoff_subscriber_->get_topic_name()[0] != '\0')
-      RCLCPP_INFO(rclcpp::get_logger("DroneSimpleController"), "Using the takeoff topic: %s", takeoff_subscriber_->get_topic_name() );
+      RCLCPP_INFO(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Using the takeoff topic: %s", takeoff_subscriber_->get_topic_name() );
     else
-      RCLCPP_WARN(rclcpp::get_logger("DroneSimpleController"), "Cannot resolve the takeoff topic: %s !", takeoff_topic_.c_str());
+      RCLCPP_WARN(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Cannot resolve the takeoff topic: %s !", takeoff_topic_.c_str());
   }else
-      RCLCPP_ERROR(rclcpp::get_logger("DroneSimpleController"), "No takeoff topic defined!");
+      RCLCPP_ERROR(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "No takeoff topic defined!");
 
   // subscribe command: land command
   if (!land_topic_.empty()) {
@@ -210,11 +217,11 @@ void DroneSimpleController::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
       sub_opt);
 
       if (land_subscriber_->get_topic_name()[0] != '\0') 
-        RCLCPP_INFO(rclcpp::get_logger("DroneSimpleController"), "Using the land topic: %s", land_subscriber_->get_topic_name() );
+        RCLCPP_INFO(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Using the land topic: %s", land_subscriber_->get_topic_name() );
       else
-        RCLCPP_WARN(rclcpp::get_logger("DroneSimpleController"), "Cannot resolve the land topic: %s !", land_topic_.c_str());
+        RCLCPP_WARN(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Cannot resolve the land topic: %s !", land_topic_.c_str());
     }else
-        RCLCPP_ERROR(rclcpp::get_logger("DroneSimpleController"), "No land topic defined!");
+        RCLCPP_ERROR(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "No land topic defined!");
 
   // subscribe command: reset command
   if (!reset_topic_.empty()) {
@@ -230,11 +237,11 @@ void DroneSimpleController::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
       sub_opt);
 
     if (reset_subscriber_->get_topic_name()[0] != '\0')
-        RCLCPP_INFO(rclcpp::get_logger("DroneSimpleController"), "Using the reset topic: %s", reset_subscriber_->get_topic_name() );
+        RCLCPP_INFO(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Using the reset topic: %s", reset_subscriber_->get_topic_name() );
       else 
-        RCLCPP_WARN(rclcpp::get_logger("DroneSimpleController"), "Cannot resolve the reset topic: %s !", reset_topic_.c_str());
+        RCLCPP_WARN(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Cannot resolve the reset topic: %s !", reset_topic_.c_str());
     }else
-        RCLCPP_ERROR(rclcpp::get_logger("DroneSimpleController"), "No reset topic defined!");
+        RCLCPP_ERROR(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "No reset topic defined!");
   
   if (!switch_mode_topic_.empty()) {
     auto sub_opt = rclcpp::SubscriptionOptions();
@@ -249,11 +256,11 @@ void DroneSimpleController::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
       sub_opt);
 
     if (switch_mode_subscriber_->get_topic_name()[0] != '\0')
-        RCLCPP_INFO(rclcpp::get_logger("DroneSimpleController"), "Using the switch mode topic: %s", switch_mode_subscriber_->get_topic_name() );
+        RCLCPP_INFO(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Using the switch mode topic: %s", switch_mode_subscriber_->get_topic_name() );
       else 
-        RCLCPP_WARN(rclcpp::get_logger("DroneSimpleController"), "Cannot resolve the switch mode topic: %s !", switch_mode_topic_.c_str());
+        RCLCPP_WARN(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Cannot resolve the switch mode topic: %s !", switch_mode_topic_.c_str());
     }else
-        RCLCPP_ERROR(rclcpp::get_logger("DroneSimpleController"), "No switch mode topic defined!");
+        RCLCPP_ERROR(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "No switch mode topic defined!");
 
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -261,31 +268,31 @@ void DroneSimpleController::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
   if (!gt_topic_.empty()){
     pub_gt_pose_ = node_handle_->create_publisher<geometry_msgs::msg::Pose>(gt_topic_,1024);  
     if (pub_gt_pose_->get_topic_name()[0] != '\0')
-      RCLCPP_INFO(rclcpp::get_logger("DroneSimpleController"), "Advertising the ground truth pose topic on: %s !", pub_gt_pose_->get_topic_name());  
+      RCLCPP_INFO(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Advertising the ground truth pose topic on: %s !", pub_gt_pose_->get_topic_name());  
     else
-      RCLCPP_WARN(rclcpp::get_logger("DroneSimpleController"), "Could not resolve the ground truth topic: %s !", gt_topic_.c_str());  
+      RCLCPP_WARN(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Could not resolve the ground truth topic: %s !", gt_topic_.c_str());  
   } else
-      RCLCPP_ERROR(rclcpp::get_logger("DroneSimpleController"), "No ground truth topic defined!");
+      RCLCPP_ERROR(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "No ground truth topic defined!");
 
   if (!gt_vel_topic_.empty())
   {
     pub_gt_vec_ = node_handle_->create_publisher<geometry_msgs::msg::Twist>("gt_vel", 1024);
   if (pub_gt_vec_->get_topic_name()[0] != '\0')
-      RCLCPP_INFO(rclcpp::get_logger("DroneSimpleController"), "Advertising the ground truth velocity topic on: %s !", pub_gt_vec_->get_topic_name());  
+      RCLCPP_INFO(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Advertising the ground truth velocity topic on: %s !", pub_gt_vec_->get_topic_name());  
     else
-      RCLCPP_WARN(rclcpp::get_logger("DroneSimpleController"), "Could not resolve the ground truth velocity topic: %s !", gt_vel_topic_.c_str());  
+      RCLCPP_WARN(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Could not resolve the ground truth velocity topic: %s !", gt_vel_topic_.c_str());  
   } else
-      RCLCPP_ERROR(rclcpp::get_logger("DroneSimpleController"), "No ground truth velocity topic defined!");
+      RCLCPP_ERROR(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "No ground truth velocity topic defined!");
 
   if (!gt_acc_topic_.empty())
   {
     pub_gt_acc_ = node_handle_->create_publisher<geometry_msgs::msg::Twist>("gt_acc", 1024);
     if (pub_gt_acc_->get_topic_name()[0] != '\0')
-      RCLCPP_INFO(rclcpp::get_logger("DroneSimpleController"), "Advertising the ground truth acceleration topic on: %s !", pub_gt_acc_->get_topic_name());  
+      RCLCPP_INFO(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Advertising the ground truth acceleration topic on: %s !", pub_gt_acc_->get_topic_name());  
     else
-      RCLCPP_WARN(rclcpp::get_logger("DroneSimpleController"), "Could not resolve the ground truth acceleration topic: %s !", gt_acc_topic_.c_str());  
+      RCLCPP_WARN(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Could not resolve the ground truth acceleration topic: %s !", gt_acc_topic_.c_str());  
   } else
-      RCLCPP_ERROR(rclcpp::get_logger("DroneSimpleController"), "No ground truth acceleration topic defined!");
+      RCLCPP_ERROR(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "No ground truth acceleration topic defined!");
 
   
 
@@ -297,7 +304,7 @@ void DroneSimpleController::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
   updateConnection = event::Events::ConnectWorldUpdateBegin(
       std::bind(&DroneSimpleController::Update, this));
 
-  RCLCPP_INFO(rclcpp::get_logger("DroneSimpleController"), "The drone plugin finished loading!");
+  RCLCPP_INFO(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "The drone plugin finished loading!");
 }
 
 /**
@@ -318,7 +325,7 @@ void DroneSimpleController::LoadControllerSettings(physics::ModelPtr _model, sdf
     controllers_.pos_y.Load(_sdf, "positionXY");
     controllers_.pos_z.Load(_sdf, "positionZ");
     
-    RCLCPP_INFO_STREAM(rclcpp::get_logger("DroneSimpleController"), "Using the PID parameters: \n" <<
+    RCLCPP_INFO_STREAM(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Using the PID parameters: \n" <<
                         "\tRoll Pitch:\n" << "\t\tkP: " << controllers_.roll.gain_p << ", kI: " << controllers_.roll.gain_i << ",kD: " << controllers_.roll.gain_d << ", Limit: " << controllers_.roll.limit << ", Time Constant: " << controllers_.roll.time_constant << "\n" << 
                         "\tYaw:\n" << "\t\tkP: " << controllers_.yaw.gain_p << ", kI: " << controllers_.yaw.gain_i << ",kD: " << controllers_.yaw.gain_d << ", Limit: " << controllers_.yaw.limit << ", Time Constant: " << controllers_.yaw.time_constant << "\n" << 
                         "\tVelocity X:\n" << "\t\tkP: " << controllers_.velocity_x.gain_p << ", kI: " << controllers_.velocity_x.gain_i << ",kD: " << controllers_.velocity_x.gain_d << ", Limit: " << controllers_.velocity_x.limit << ", Time Constant: " << controllers_.velocity_x.time_constant << "\n" << 
@@ -411,7 +418,7 @@ void DroneSimpleController::TakeoffCallback(const std_msgs::msg::Empty::SharedPt
   {
     navi_state = TAKINGOFF_MODEL;
     m_timeAfterCmd = 0;
-    RCLCPP_INFO(rclcpp::get_logger("DroneSimpleController"), "Quadrotor takes off!!");
+    RCLCPP_INFO(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Quadrotor takes off!!");
   }
 }
 
@@ -425,7 +432,7 @@ void DroneSimpleController::LandCallback(const std_msgs::msg::Empty::SharedPtr m
   {
     navi_state = LANDING_MODEL;
     m_timeAfterCmd = 0;
-    RCLCPP_INFO(rclcpp::get_logger("DroneSimpleController"), "Quadrotor lands!!");
+    RCLCPP_INFO(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Quadrotor lands!!");
   }
 }
 
@@ -436,7 +443,7 @@ void DroneSimpleController::LandCallback(const std_msgs::msg::Empty::SharedPtr m
 */
 void DroneSimpleController::ResetCallback(const std_msgs::msg::Empty::SharedPtr msg)
 {
-  RCLCPP_INFO(rclcpp::get_logger("DroneSimpleController"), "Reset quadrotor!!");
+  RCLCPP_INFO(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "Reset quadrotor!!");
   Reset();
 }
 

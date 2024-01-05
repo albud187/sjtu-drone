@@ -71,8 +71,8 @@ void DroneSimpleController::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
 
   }
   else {
-    link_name_ = model_name_+"/"+_sdf->GetElement("bodyName")->Get<std::string>();
-    //link_name_ = _sdf->GetElement("bodyName")->Get<std::string>();
+    //link_name_ = model_name_+"/"+_sdf->GetElement("bodyName")->Get<std::string>();
+    link_name_ = _sdf->GetElement("bodyName")->Get<std::string>();
 
     link = boost::dynamic_pointer_cast<physics::Link>(world->EntityByName(link_name_));
     RCLCPP_INFO(rclcpp::get_logger(model_name_+"/"+"DroneControl"), "bodyName NOT found: ");

@@ -28,25 +28,22 @@ def main(args=None):
 
     content = sys.argv[1]
     namespace = sys.argv[2]
+    init_pose_arg = sys.argv[3]
 
-    x = 1.0
-    y = 1.0
-    z = 0.0
+    x, y, z = map(float, init_pose_arg.split())
     roll = 0.0
     pitch = 0.0
     yaw = 0.0
 
-    # Create a Pose object with the specified position and orientation
     pose = Pose()
     pose.position.x = float(x)
     pose.position.y = float(y)
     pose.position.z = float(z)
-    #q = quaternion_from_euler(roll, pitch, yaw)
+   
     pose.orientation.x = float(0.0)
     pose.orientation.y = float(0.0)
     pose.orientation.z = float(0.0)
     pose.orientation.w = float(1.0)
-
 
     req = SpawnEntity.Request()
     req.name = namespace

@@ -36,8 +36,10 @@ def generate_launch_description():
     )
     robot_description_config = xacro.process_file(xacro_file)
     robot_desc = robot_description_config.toxml()
-    model_ns = "drone"
-    init_pose = "2.0 2.0 0.0"
+    model_ns1 = "drone1"
+    model_ns2 = "drone2"
+    init_pose1 = "1.0 1.0 0.0"
+    init_pose2 = "0.0 5.0 0.0"
     world_file = os.path.join(
         get_package_share_directory("sjtu_drone_description"),
         "worlds", "empty_world.world"
@@ -59,7 +61,7 @@ def generate_launch_description():
             package="robot_state_publisher",
             executable="robot_state_publisher",
             name="robot_state_publisher",
-            # namespace=model_ns,
+            namespace=model_ns1,
             output="screen",
             parameters=[{"use_sim_time": use_sim_time, "robot_description": robot_desc}],
             arguments=[robot_desc]
@@ -69,7 +71,25 @@ def generate_launch_description():
             package='joint_state_publisher',
             executable='joint_state_publisher',
             name='joint_state_publisher',
-            # namespace=model_ns,
+            namespace=model_ns1,
+            output='screen',
+        ),
+
+        Node(
+            package="robot_state_publisher",
+            executable="robot_state_publisher",
+            name="robot_state_publisher",
+            namespace=model_ns2,
+            output="screen",
+            parameters=[{"use_sim_time": use_sim_time, "robot_description": robot_desc}],
+            arguments=[robot_desc]
+        ),
+
+        Node(
+            package='joint_state_publisher',
+            executable='joint_state_publisher',
+            name='joint_state_publisher',
+            namespace=model_ns2,
             output='screen',
         ),
 
@@ -88,7 +108,14 @@ def generate_launch_description():
         Node(
             package="sjtu_drone_bringup",
             executable="spawn_drone",
-            arguments=[robot_desc, model_ns, init_pose],
+            arguments=[robot_desc, model_ns1, init_pose1],
+            output="screen"
+        ),
+
+        Node(
+            package="sjtu_drone_bringup",
+            executable="spawn_drone",
+            arguments=[robot_desc, model_ns2, init_pose2],
             output="screen"
         )
     ])

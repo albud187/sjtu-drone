@@ -7,6 +7,7 @@ docker run \
     $VOLUMES \
     -v ${XSOCK}:${XSOCK} \
     -v ${XAUTH}:${XAUTH} \
+    -v ${PWD}:/sjtu_ws/src/sjtu_drone \
     -e DISPLAY=${DISPLAY} \
     -e XAUTHORITY=${XAUTH} \
     --env=QT_X11_NO_MITSHM=1 \

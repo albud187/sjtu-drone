@@ -37,6 +37,9 @@ def generate_launch_description():
     r_1_doc = xacro.process_file(XACRO_FILE_PATH, mappings = {"drone_id":R_NS[1]})
     r_1_desc = r_1_doc.toprettyxml(indent='  ')
 
+    r_2_doc = xacro.process_file(XACRO_FILE_PATH, mappings = {"drone_id":R_NS[2]})
+    r_2_desc = r_2_doc.toprettyxml(indent='  ')
+
     world_file = os.path.join(
         get_package_share_directory("sjtu_drone_description"),
         "worlds", "empty_world.world"
@@ -71,20 +74,21 @@ def generate_launch_description():
             output='screen',
         ),
 
-        # Node(
-        #     package='robot_state_publisher',
-        #     executable='robot_state_publisher',
-        #     namespace='drone2',
-        #     parameters=[{'frame_prefix': "drone2"+'/','use_sim_time': use_sim_time, 'robot_description': robot_desc_drone2}]
-        # ),
+        Node(
+            package='robot_state_publisher',
+            executable='robot_state_publisher',
+            namespace=R_NS[2],
+            parameters=[{'frame_prefix': R_NS[2]+'/','use_sim_time': use_sim_time, 'robot_description': r_2_desc}]
+        ),
 
-        # Node(
-        #     package='joint_state_publisher',
-        #     executable='joint_state_publisher',
-        #     name=model_ns2+"_"+'joint_state_publisher',
-        #     namespace=model_ns2,
-        #     output='screen',
-        # ),
+        Node(
+            package='joint_state_publisher',
+            executable='joint_state_publisher',
+            name=R_NS[2]+"_" +'joint_state_publisher',
+            namespace=R_NS[2],
+            output='screen',
+        ),
+
 
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
@@ -104,10 +108,10 @@ def generate_launch_description():
             output="screen"
         ),
 
-        # Node(
-        #     package="sjtu_drone_bringup",
-        #     executable="spawn_drone",
-        #     arguments=[robot_desc, R_NS[2], init_poses[R_NS[2]]],
-        #     output="screen"
-        # )
+        Node(
+            package="sjtu_drone_bringup",
+            executable="spawn_drone",
+            arguments=[r_2_desc, R_NS[2], init_poses[R_NS[2]]],
+            output="screen"
+        )
     ])

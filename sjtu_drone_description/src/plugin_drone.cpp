@@ -24,7 +24,8 @@ namespace gazebo {
 
 DroneSimpleController::DroneSimpleController()
 { 
-  navi_state = LANDED_MODEL;
+  //navi_state = LANDED_MODEL;
+  navi_state = FLYING_MODEL;
   m_posCtrl = false;
   m_velMode = false;
 }

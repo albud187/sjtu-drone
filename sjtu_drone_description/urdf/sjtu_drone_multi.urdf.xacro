@@ -26,7 +26,7 @@
   </link>
 
   <joint name="${drone_id}/front_cam_joint" type="fixed">
-    <origin rpy="0 0 0" xyz="0.2 0 0"/>
+    <origin rpy="0 0.261799 0" xyz="0.2 0 0"/>
     <parent link="${drone_id}/base_link" />
     <child link="${drone_id}/front_cam_link" />
   </joint>

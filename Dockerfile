@@ -25,12 +25,6 @@ RUN curl -L https://github.com/osrf/gazebo_models/archive/refs/heads/master.zip 
 RUN apt update && \
     apt install -y xterm
 
-RUN mkdir -p /workdir/src
-RUN /bin/bash -c 'cd /workdir/ \
-    && source /opt/ros/${ROS_DISTRO}/setup.bash \
-    && rosdep install --from-paths src --ignore-src -r -y \
-    && colcon build'
-
 ENTRYPOINT ["/bin/bash", "-c", "source /opt/ros/humble/setup.bash && exec bash"]
 
 # Clean up
